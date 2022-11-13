@@ -47,7 +47,7 @@ st_read("https://services1.arcgis.com/ESMARspQHYMw9BZ9/arcgis/rest/services/Outp
   st_as_sf(crs = 4326, coords = c("long", "lat")) %>% 
   st_write("oa.geojson", driver = "GeoJSON")
 
-# ------------------ Central Area of Blackpool
+# ------------------ Downtown Area of Blackpool
 msoas <- st_read("msoa.geojson")
-msoas$central <- ifelse(msoas$MSOA21CD %in% c("E02002638","E02002640","E02002642","E02002643","E02002645"),"Central Blackpool","No")
-msoas %>% group_by(central) %>% summarise() %>% filter(central == "Central Blackpool") %>% st_write("central.geojson",driver = "GeoJSON")
+msoas$central <- ifelse(msoas$MSOA21CD %in% c("E02002638","E02002640","E02002642","E02002643","E02002645"),"Downtown Blackpool","No")
+msoas %>% group_by(central) %>% summarise() %>% filter(central == "Downtown Blackpool") %>% st_write("central.geojson",driver = "GeoJSON")
