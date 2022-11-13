@@ -51,3 +51,41 @@ st_read("https://services1.arcgis.com/ESMARspQHYMw9BZ9/arcgis/rest/services/Outp
 msoas <- st_read("msoa.geojson")
 msoas$central <- ifelse(msoas$MSOA21CD %in% c("E02002638","E02002640","E02002642","E02002643","E02002645"),"Downtown Blackpool","No")
 msoas %>% group_by(central) %>% summarise() %>% filter(central == "Downtown Blackpool") %>% st_write("central.geojson",driver = "GeoJSON")
+
+# ------------------ 50km buffer around Poulton
+poulton <- st_sfc(st_point(c(-2.97733, 53.83217)), crs = 4326)
+poulton_buff <- st_buffer(poulton, 50000)
+st_write(poulton_buff, "buffer.geojson",driver = "GeoJSON")
+
+# ------------------ just Blackpool
+st_read("local_authorities.geojson") %>%
+  filter(LAD22NM == "Blackpool") %>%
+  st_write("Blackpool.geojson",driver = "GeoJSON")
+
+# ------------------- England with a Blackpool hole
+Blackpool <- st_read("Blackpool.geojson")
+buff50km <- st_read("buffer.geojson")
+Blackpool_Spatial <- as(Blackpool,"Spatial")
+buffer_Spatial <- as(buff50km,"Spatial")
+
+# From https://stackoverflow.com/questions/29624895/how-to-add-a-hole-to-a-polygon-within-a-spatialpolygonsdataframe
+library("sp")
+AddHoleToPolygon <-function(poly,hole){
+  # invert the coordinates for Polygons to flag it as a hole
+  coordsHole <-  hole@polygons[[1]]@Polygons[[1]]@coords
+  newHole <- Polygon(coordsHole,hole=TRUE)
+  
+  # punch the hole in the main poly
+  listPol <- poly@polygons[[1]]@Polygons
+  listPol[[length(listPol)+1]] <- newHole
+  punch <- Polygons(listPol,poly@polygons[[1]]@ID)
+  
+  # make the polygon a SpatialPolygonsDataFrame as the entry
+  new <- SpatialPolygons(list(punch),proj4string=poly@proj4string)
+  new <- SpatialPolygonsDataFrame(new,data=as(poly,"data.frame"))
+  
+  return(new)
+}
+AddHoleToPolygon(buffer_Spatial,Blackpool_Spatial)%>%
+  st_as_sf(crs = 4326, coords = c("long", "lat")) %>%
+  st_write("Blackpool_mask.geojson", driver = "GeoJSON")
